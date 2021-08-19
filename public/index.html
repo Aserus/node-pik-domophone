@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+</head>
+<body>
+
+  <div id="app">
+    <device v-for="item in deviceList" :item="item" :key="item.deviceId"></device>
+  </div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+  const socket = io('');
+
+
+  Vue.component('device', {
+    props:{
+      item:Object
+    },
+    template: `<div class="device">
+      <canvas ref="video" class="device-video"></canvas>
+      <canvas ref="detections" class="device-detections" ></canvas>
+      <div>{{item.title}}</div>
+      <pre>{{item}}</pre>
+    </div>`,
+    methods:{
+      socketOn(type,cb){
+        socket.on(`${this.item.deviceId}.${type}`, cb)
+      }
+    },
+    mounted(){
+
+
+
+      const canvas = this.$refs.video
+      const ctx = canvas.getContext('2d')
+      const canvas2 = this.$refs.detections
+      const ctx2 = canvas2.getContext('2d')
+
+
+
+      canvas.width = 1200
+      canvas.height = 719
+      canvas2.width = 1200
+      canvas2.height = 719
+
+
+      const img = new Image()
+      this.socketOn(`data`, (data) => {
+        const src = 'data:image/jpeg;base64,' + data
+        img.src = src;
+        const base_image = new Image();
+        base_image.src = src;
+        base_image.onload = function () {
+          ctx.drawImage(base_image, 0, 0);
+        }
+
+      });
+      function clearDetections(){
+        ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+      }
+      let clearTimer = null
+      this.socketOn('detections', (jsonDetections) => {
+
+        clearDetections()
+
+        const detections = JSON.parse(jsonDetections)
+        console.log('detections', detections)
+
+        detections.forEach((detection) => {
+          ctx2.strokeRect(detection._x, detection._y, detection._width, detection._height);
+        })
+        clearTimeout(clearTimer)
+        clearTimer = setTimeout(()=> clearDetections(),3000)
+      })
+
+
+    }
+  })
+
+  const app = new Vue({
+    el: '#app',
+    data: {
+      deviceList: [],
+    },
+    mounted() {
+      socket.on('devices', data => this.deviceList = data)
+    }
+  })
+
+
+
+</script>
+<style>
+.device{
+width:1200px;
+height:710px;
+position: relative;
+}
+
+.device .device-video,
+.device .device-detections{
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top:0;
+  left:0;
+}
+
+</style>
+</body>
+</html>

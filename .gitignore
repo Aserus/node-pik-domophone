@@ -1,0 +1,11 @@
+.DS_Store
+.docker_data
+.docker_data/*
+.vscode
+.vscode/*
+package-lock.json
+node_modules
+tmp/*
+
+.env
+.data
