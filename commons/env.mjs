@@ -2,7 +2,7 @@
 // not required, but will speed up things drastically (python required)
 import '@tensorflow/tfjs-node';
 
-import * as faceapi from 'face-api.js';
+import * as faceapi from '@vladmandic/face-api';
 
 // implements nodejs wrappers for HTMLCanvasElement, HTMLImageElement, ImageData
 import canvas from 'canvas'

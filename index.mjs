@@ -9,10 +9,12 @@ import http from 'http'
 import { Server as SocketIoServer} from 'socket.io'
 import * as rtsp from './lib/rtsp-ffmpeg.js'
 
-import * as faceapi from 'face-api.js';
+import * as faceapi from '@vladmandic/face-api';
 
 import moment from 'moment'
 import clc from 'cli-color'
+
+import EventEmitter from 'events'
 
 
 import {
@@ -95,17 +97,32 @@ async function run() {
   const faceMatcher = await regFaces()
   const intercomList = await pikApi.allIntercomList()
   const videoIntercomList = intercomList.filter(item => !!item.video && item.video.length)
+
+  const bus = new EventEmitter()
+
+  setInterval(async ()=>{
+
+    const intercomList = await pikApi.allIntercomList()
+    const videoIntercomList = intercomList.filter(item => !!item.video && item.video.length)
+
+    bus.emit('intercoms.updated', videoIntercomList)
+    //console.log('intercoms.updated')
+  }, 30*60*1000)
     //.filter((item, i) => i === 0)
 
   const deviceIds = []
 
-  videoIntercomList.forEach(intercom => {
+  videoIntercomList.forEach(async intercom => {
     const rtspUrl = intercom.video[0].source
     const title = intercom.renamed_name
 
     const deviceId = `intercom.${intercom.id}`
 
     deviceIds.push({title,deviceId})
+
+
+
+
 
 
     function socketEmit(type,data){
@@ -128,6 +145,18 @@ async function run() {
       //quality: 1
     });
 
+    bus.on('intercoms.updated', (list) => {
+      for (const item of list){
+        if (item.id == intercom.id){
+          const rtspUrl = intercom.video[0].source
+          stream.input = rtspUrl
+          console.log('intercoms.updated source', rtspUrl)
+          break
+        }
+      }
+    })
+
+
     const pipeStream = (data) => socketEmitImage(data)
     stream.on('data', pipeStream);
 
@@ -145,29 +174,34 @@ async function run() {
 
     async function handlerRecognize(){
       if (isPause || !lastFrame) return setTimeout(() => handlerRecognize(), timerTime);
-      const img = await canvas.loadImage(lastFrame)
-      const detections = await faceapi.detectAllFaces(img, faceDetectionOptions)   // надо потом попробовать detectSingleFace
-        .withFaceLandmarks()
-        .withFaceDescriptors()
+      try{
+        const img = await canvas.loadImage(lastFrame)
+        const detections = await faceapi.detectAllFaces(img, faceDetectionOptions)   // надо потом попробовать detectSingleFace
+          .withFaceLandmarks()
+          .withFaceDescriptors()
 
-      if (detections.length) {
-        const list = detections.map(item => item.detection.box)
-        socketEmit('detections', JSON.stringify(list))
-      }
-
-      for (const detection of detections){
-        const bestMatch = faceMatcher.findBestMatch(detection.descriptor)
-        if (bestMatch.label == 'unknown') {
-          //console.log('лицо не распознано')
-          continue;
+        if (detections.length) {
+          const list = detections.map(item => item.detection.box)
+          socketEmit('detections', JSON.stringify(list))
         }
-        socketEmit('face', bestMatch.label)
-        logTime('Обнаружено зарегистрированное лицо:', clc.yellow(title), bestMatch.label, bestMatch.distance)
-        isPause = true
-        setTimeout(() => isPause = false ,5000)
-        await pikApi.intercomOpen(intercom.id)
-        logTime('команда на открытие отправлена', clc.yellow(title))
-        break;
+
+        for (const detection of detections){
+          const bestMatch = faceMatcher.findBestMatch(detection.descriptor)
+          if (bestMatch.label == 'unknown') {
+            //console.log('лицо не распознано')
+            continue;
+          }
+          socketEmit('face', bestMatch.label)
+          logTime('Обнаружено зарегистрированное лицо:', clc.yellow(title), bestMatch.label, bestMatch.distance)
+          isPause = true
+          setTimeout(() => isPause = false ,5000)
+          await pikApi.intercomOpen(intercom.id)
+          logTime('команда на открытие отправлена', clc.yellow(title))
+          break;
+        }
+      }catch(err){
+        console.log('err handlerRecognize',err)
+        console.log('err handlerRecognize lastFrame',typeof (lastFrame))
       }
 
       setTimeout(() => handlerRecognize(), timerTime)
