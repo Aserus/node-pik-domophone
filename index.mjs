@@ -148,9 +148,9 @@ async function run() {
     bus.on('intercoms.updated', (list) => {
       for (const item of list){
         if (item.id == intercom.id){
-          const rtspUrl = intercom.video[0].source
+          const rtspUrl = item.video[0].source
           stream.input = rtspUrl
-          console.log('intercoms.updated source', rtspUrl)
+          //console.log('intercoms.updated source', rtspUrl)
           break
         }
       }
