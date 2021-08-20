@@ -6,15 +6,16 @@
   "scripts": {
     "start": "node index.mjs",
     "serve": "pm2 start index.mjs",
+    "facereg:init": "node facereg.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@tensorflow/tfjs-core": "^3.8.0",
-    "@tensorflow/tfjs-node": "^3.8.0",
     "@vladmandic/face-api": "^1.4.1",
     "axios": "^0.21.1",
+    "beamcoder": "^0.6.14",
     "canvas": "^2.8.0",
     "cli-color": "^2.0.0",
     "dotenv": "^10.0.0",

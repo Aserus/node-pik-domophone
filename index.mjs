@@ -1,34 +1,19 @@
-import { pikApi,config } from './boot/index.mjs'
-
-import fs from 'fs'
-import path from 'path'
-
 import express from 'express'
 import http from 'http'
+import path from 'path'
 
-import { Server as SocketIoServer} from 'socket.io'
-import * as rtsp from './lib/rtsp-ffmpeg.js'
-
-import * as faceapi from '@vladmandic/face-api';
-
-import moment from 'moment'
 import clc from 'cli-color'
 
-import EventEmitter from 'events'
+import { Buffer } from 'buffer';
+import { Server as SocketIoServer } from 'socket.io'
+import { Worker } from 'worker_threads'
+import { EventEmitter } from 'events'
+
+import { pikApi, config } from './boot/index.mjs'
+import { logTime } from './helpers/index.mjs'
 
 
-import {
-  canvas,
-  faceDetectionNet,
-  faceDetectionOptions,
-} from './commons/index.mjs';
-
-const RECG_FRAMERATE = 2
-const timerTime = parseInt(1000 / RECG_FRAMERATE)
-
-function logTime(...args){
-  console.log(clc.blue(moment().format('YYYY-MM-DD HH:mm:ss')),' - ',...args)
-}
+const FPS = 1
 
 
 const rootFolder = process.cwd()
@@ -40,191 +25,217 @@ const io = new SocketIoServer(server);
 
 
 
-server.listen(config.get('PORT',3000));
+
+
+server.listen(config.get('PORT', 3000));
 
 app.get('/', function (req, res) {
-  res.sendFile(path.join(rootFolder,'public/index.html'));
+  res.sendFile(path.join(rootFolder, 'public/index.html'));
 });
 
 
 
+function startWorkerRtsp(workerData) {
+  const bus = new EventEmitter()
+  let worker = null
 
-async function regFaces() {
-  const regFacePath = path.join(rootFolder, 'regfaces')
-
-  let regFaceFiles = await fs.promises.readdir(regFacePath)
-  regFaceFiles = regFaceFiles.filter(file => ['.jpg', '.png'].includes(path.extname(file)))
-
-  const faceList = []
-
-  for (let faceFile of regFaceFiles) {
-    const name = path.basename(faceFile, path.extname(faceFile))
-    const data = await fs.promises.readFile(path.join(regFacePath, faceFile))
-    const img = await canvas.loadImage(data)
-    const detections = await faceapi.detectAllFaces(img, faceDetectionOptions)
-      .withFaceLandmarks()
-      .withFaceDescriptors()
-
-    if (detections.length == 0) throw new Error('Регистрация лица: не обнаружено лицо')
-    const faceData = detections[0]
-
-    const labeledDescriptor = new faceapi.LabeledFaceDescriptors(
-      name,
-      [faceData.descriptor]
-    )
-
-    faceList.push(labeledDescriptor)
+  const onExit = () => {
+    start();
+  }
+  const onError = err => console.log('--- onError ----', err)
+  const onMessage = data => {
+    const bufferData = Buffer.from(data)
+    bus.emit('data', bufferData)
   }
 
-  const faceMatcher = new faceapi.FaceMatcher(faceList)
+  function start() {
+    worker = new Worker('./worker.rtsp.mjs', { workerData });
+    worker.on('message', onMessage);
+    worker.on('error', onError);
+    worker.on('exit', onExit)
+  }
 
-  console.log('Зарегистрировано лиц:', faceList.length, regFaceFiles)
+  bus.on('url',url =>{
+    workerData.url = url
+    if (worker){
+      worker.postMessage(url)
+    }
+  })
 
-  return faceMatcher
+  start()
+
+  return bus
+}
+
+function startWorkerFindface(workerData) {
+  const bus = new EventEmitter()
+  let worker = null
+
+  const onExit = () => {
+    start();
+  }
+  const onError = err => {
+    console.error("--- onError ----\n", workerData, "\n", err)
+  }
+  const onMessage = data => {
+    bus.emit('data', data)
+  }
+
+  function start() {
+    worker = new Worker('./worker.findface.mjs', { workerData });
+    worker.on('message', onMessage);
+    worker.on('error', onError);
+    worker.on('exit', onExit)
+  }
+
+
+  bus.on('frame', frame => {
+    if (worker) {
+      worker.postMessage(frame);
+    }
+  })
+
+  start()
+
+  return bus
 }
 
 
 
-
 async function run() {
-
-  await faceDetectionNet.loadFromDisk('./weights')
-  await faceapi.nets.faceLandmark68Net.loadFromDisk('./weights')
-  await faceapi.nets.faceRecognitionNet.loadFromDisk('./weights')
-
   await pikApi.login()
 
-  const faceMatcher = await regFaces()
   const intercomList = await pikApi.allIntercomList()
   const videoIntercomList = intercomList.filter(item => !!item.video && item.video.length)
+  //.filter((item, i) => (i == 1))
+  const deviceIds = []
 
-  const bus = new EventEmitter()
+  io.on('connection', socket => {
+    socket.emit('devices', deviceIds)
+  })
+
+  const intercomBus = new EventEmitter()
 
   setInterval(async ()=>{
 
     const intercomList = await pikApi.allIntercomList()
     const videoIntercomList = intercomList.filter(item => !!item.video && item.video.length)
 
-    bus.emit('intercoms.updated', videoIntercomList)
-    //console.log('intercoms.updated')
-  }, 30*60*1000)
-    //.filter((item, i) => i === 0)
 
-  const deviceIds = []
+
+    intercomBus.emit('update', videoIntercomList)
+
+  },30*60*1000)
+
+
 
   videoIntercomList.forEach(async intercom => {
-    const rtspUrl = intercom.video[0].source
+    const { id } = intercom
     const title = intercom.renamed_name
+    let url = intercom.video[0].source
 
-    const deviceId = `intercom.${intercom.id}`
+    const deviceId = `intercom.${id}`
 
-    deviceIds.push({title,deviceId})
+    deviceIds.push({ title, deviceId })
 
-
-
-
+    const workerData = { url, title, rate: 5 }
 
 
-    function socketEmit(type,data){
+    const workerRtsp = startWorkerRtsp(workerData)
+    const workerFindface = startWorkerFindface({ title })
+
+
+    function socketEmit(type, data) {
       const clientLength = io.of("/").sockets.size
       if (clientLength == 0) return;
-        io.emit(`${deviceId}.${type}`, data)
+      io.emit(`${deviceId}.${type}`, data)
     }
-
-    function socketEmitImage(data){
+    function socketEmitImage(data) {
       const clientLength = io.of("/").sockets.size
       //console.log('clientLength', clientLength)
       if (clientLength == 0) return;
       io.emit(`${deviceId}.data`, data.toString('base64'))
     }
 
-    console.log('Подключена камера домофона:', clc.yellow(title))
-    const stream = new rtsp.FFMpeg({
-      input: rtspUrl,
-      rate: 10,
-      //quality: 1
-    });
 
-    bus.on('intercoms.updated', (list) => {
-      for (const item of list){
-        if (item.id == intercom.id){
-          const rtspUrl = item.video[0].source
-          stream.input = rtspUrl
-          //console.log('intercoms.updated source', rtspUrl)
-          break
-        }
-      }
-    })
+    let lastFrame = null;
 
-
-    const pipeStream = (data) => socketEmitImage(data)
-    stream.on('data', pipeStream);
-
-    let lastFrame = null
-    let isPause = false
-
-    stream.on('error', err => {
-      console.log(err)
-      lastFrame = null
-    })
-    stream.on('data', (data) => {
+    workerRtsp.on('data', data => {
       lastFrame = data
+      socketEmitImage(data)
     })
 
-    stream.on('close',()=>{
-      stream.start()
+    intercomBus.on('update',list =>{
+      const updIntercom = list.find(item => item.id ===id)
+      if (!updIntercom) return;
+      const url = updIntercom.video[0].source
+      workerRtsp.emit('url', url)
     })
 
 
-    async function handlerRecognize(){
-      if (isPause || !lastFrame) return setTimeout(() => handlerRecognize(), timerTime);
-      try{
-        const img = await canvas.loadImage(lastFrame)
-        const detections = await faceapi.detectAllFaces(img, faceDetectionOptions)   // надо потом попробовать detectSingleFace
-          .withFaceLandmarks()
-          .withFaceDescriptors()
 
-        if (detections.length) {
-          const list = detections.map(item => item.detection.box)
-          socketEmit('detections', JSON.stringify(list))
-        }
 
-        for (const detection of detections){
-          const bestMatch = faceMatcher.findBestMatch(detection.descriptor)
-          if (bestMatch.label == 'unknown') {
-            //console.log('лицо не распознано')
-            continue;
-          }
-          socketEmit('face', bestMatch.label)
-          logTime('Обнаружено зарегистрированное лицо:', clc.yellow(title), bestMatch.label, bestMatch.distance)
-          isPause = true
-          setTimeout(() => isPause = false ,5000)
-          await pikApi.intercomOpen(intercom.id)
-          logTime('команда на открытие отправлена', clc.yellow(title))
-          break;
-        }
-      }catch(err){
-        console.log('err handlerRecognize',err)
-        console.log('err handlerRecognize lastFrame',typeof (lastFrame))
-        if (typeof(lastFrame)=='object'){
-          console.log('err handlerRecognize lastFrame', lastFrame)
-        }
-      }
-
-      setTimeout(() => handlerRecognize(), timerTime)
+    function handleFrame() {
+      setTimeout(handlerRecognize, 1000 / FPS)
     }
 
-    handlerRecognize();
+    let isPause = false
+    const findfacePause = () => {
+      isPause = true
+      setTimeout(() => isPause = false, 5000)
+    }
+
+    //let t = performance.now()
+    async function handlerRecognize() {
+      if (isPause || !lastFrame) return handleFrame();
+      const frame = lastFrame;
+      lastFrame = null
+
+      //t = performance.now()
+      workerFindface.emit('frame', frame)
+
+      handleFrame();
+    }
+
+
+    workerFindface.on('data', async data => {
+      //console.log('workerFindface', data)
+
+      // console.log(performance.now() - t)
+      // t = performance.now()
+
+      if (!data) return;
+
+      socketEmit('detections', JSON.stringify(data.boxes))
+
+      if (data.detectFaces.length) {
+        findfacePause()
+        const face = data.detectFaces[0]
+        logTime('Обнаружено зарегистрированное лицо:', clc.yellow(title), face.label, face.distance)
+        await pikApi.intercomOpen(intercom.id)
+        logTime('Команда на открытие отправлена', clc.yellow(title))
+        socketEmit('face', face)
+      }
+
+    })
+
+    handleFrame()
+
   })
 
-  io.on('connection',socket => {
-    socket.emit('devices', deviceIds)
-  })
+
+
+
 }
 
 
 
 
 
+run().catch(err => console.log(err))
 
-run().catch(err=>console.log(err))
+
+
+
+
+

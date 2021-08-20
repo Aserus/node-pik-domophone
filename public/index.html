@@ -7,13 +7,18 @@
 <body>
 
   <div id="app">
-    <device v-for="item in deviceList" :item="item" :key="item.deviceId"></device>
+    <div class="device-list">
+      <device v-for="item in deviceList" :item="item" :key="item.deviceId"></device>
+    </div>
   </div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
+
+  const WIDTH = 640
+  const HEIGHT = 360
 
   const socket = io('');
 
@@ -39,15 +44,19 @@
 
       const canvas = this.$refs.video
       const ctx = canvas.getContext('2d')
+
       const canvas2 = this.$refs.detections
       const ctx2 = canvas2.getContext('2d')
 
+      ctx2.strokeStyle = "green";
 
 
-      canvas.width = 1200
-      canvas.height = 719
-      canvas2.width = 1200
-      canvas2.height = 719
+
+      canvas.width = WIDTH
+      canvas.height = HEIGHT
+
+      canvas2.width = canvas.width
+      canvas2.height = canvas.height
 
 
       const img = new Image()
@@ -97,10 +106,22 @@
 
 </script>
 <style>
+
+  body,html{
+    padding:0;
+    margin:0;
+  }
+
+.device-list{
+  display:flex;
+  justify-content:space-between;
+  flex-wrap: wrap;
+}
 .device{
-width:1200px;
-height:710px;
+width:640px;
+height:320px;
 position: relative;
+margin-bottom:20px;
 }
 
 .device .device-video,
