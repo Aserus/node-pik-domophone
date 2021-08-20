@@ -5,6 +5,7 @@
   "main": "index.mjs",
   "scripts": {
     "start": "node index.mjs",
+    "serve": "pm2 start index.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -20,6 +21,7 @@
     "mkdirp": "^1.0.4",
     "moment": "^2.29.1",
     "nconf": "^0.11.3",
+    "pm2": "^5.1.1",
     "rtsp-ffmpeg": "^0.0.15",
     "rtsp-video-recorder": "^1.4.0-alpha.3",
     "socket.io": "^4.1.3",
