@@ -171,6 +171,10 @@ async function run() {
       lastFrame = data
     })
 
+    stream.on('close',()=>{
+      stream.start()
+    })
+
 
     async function handlerRecognize(){
       if (isPause || !lastFrame) return setTimeout(() => handlerRecognize(), timerTime);
@@ -202,6 +206,9 @@ async function run() {
       }catch(err){
         console.log('err handlerRecognize',err)
         console.log('err handlerRecognize lastFrame',typeof (lastFrame))
+        if (typeof(lastFrame)=='object'){
+          console.log('err handlerRecognize lastFrame', lastFrame)
+        }
       }
 
       setTimeout(() => handlerRecognize(), timerTime)
