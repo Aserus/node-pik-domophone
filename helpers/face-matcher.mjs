@@ -1,6 +1,9 @@
-import * as faceapi from '@vladmandic/face-api';
-
 import { config } from '../boot/config.mjs'
+import { faceapi } from './faceapi.mjs'
+
+
+
+
 
 
 export default ()=>{

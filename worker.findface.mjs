@@ -6,9 +6,9 @@ import {
 import fs from 'fs'
 import path from 'path'
 import { Buffer } from 'buffer'
-import * as faceapi from '@vladmandic/face-api';
+
 import getFaceMatcher from './helpers/face-matcher.mjs'
-import { getTensor } from './helpers/faceapi.mjs'
+import { getTensor,faceapi } from './helpers/faceapi.mjs'
 
 
 import {
