@@ -76,8 +76,8 @@ async function run() {
     const faceData = await faceapi.detectSingleFace(tensor, faceDetectionOptions)
       .withFaceLandmarks()
       .withFaceDescriptor()
-    return;
-    tensor.dispose()
+
+    //tensor.dispose()
 
     if (!faceData) throw new Error('Регистрация лица: не обнаружено лицо')
 

@@ -11,6 +11,7 @@ export default ()=>{
   let peopleList = config.get('people')
 
   if (!peopleList || peopleList.length==0) throw new Error('Нету зарегистрированных лиц')
+  console.log('Зарегистрированных лиц:',peopleList.length)
 
 
   const faceList = Array.from(peopleList).map(item => {
@@ -28,8 +29,3 @@ export default ()=>{
 
   return faceMatcher
 }
-
-
-
-
-
