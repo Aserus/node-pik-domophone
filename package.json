@@ -5,16 +5,14 @@
   "main": "index.mjs",
   "scripts": {
     "start": "node index.mjs",
-    "serve": "pm2 start index.mjs",
+    "serve": "nodemon index.mjs",
     "facereg:init": "node facereg.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tensorflow/tfjs-core": "^3.8.0",
     "@tensorflow/tfjs-node": "^3.8.0",
-    "@tensorflow/tfjs-node-gpu": "^3.8.0",
     "@vladmandic/face-api": "^1.4.1",
     "axios": "^0.21.1",
     "beamcoder": "^0.6.14",
@@ -25,7 +23,7 @@
     "mkdirp": "^1.0.4",
     "moment": "^2.29.1",
     "nconf": "^0.11.3",
-    "pm2": "^5.1.1",
+    "nodemon": "^2.0.12",
     "rtsp-ffmpeg": "^0.0.15",
     "rtsp-video-recorder": "^1.4.0-alpha.3",
     "socket.io": "^4.1.3",
