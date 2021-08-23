@@ -4,8 +4,11 @@
 .vscode
 .vscode/*
 package-lock.json
+yarn.lock
 node_modules
 tmp/*
 
 .env
 .data
+
+
