@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@tensorflow/tfjs-core": "^3.8.0",
+    "@tensorflow/tfjs-node": "^3.8.0",
     "@tensorflow/tfjs-node-gpu": "^3.8.0",
     "@vladmandic/face-api": "^1.4.1",
     "axios": "^0.21.1",
