@@ -1,0 +1,19 @@
+version: '3'
+services:
+  api:
+    build: ./
+    restart: always
+    ports:
+      - '${APP_DOCKER_PORT}:3000'
+    volumes:
+      - './:/app'
+    networks:
+      - lognet
+    environment:
+      - ACCOUNT_PHONE
+      - ACCOUNT_PWD
+      - STORAGE_PATH
+      # - TF_CPP_MIN_LOG_LEVEL
+networks:
+  lognet:
+    driver: bridge

@@ -1,7 +1,7 @@
 import { workerData, parentPort } from 'worker_threads'
 
 // import { performance } from 'perf_hooks';
-import * as rtsp from './lib/rtsp-ffmpeg.js'
+import * as rtsp from '../lib/rtsp-ffmpeg.js'
 
 
 async function run(){

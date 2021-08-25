@@ -4,12 +4,14 @@ import path from 'path'
 import mkdirp from 'mkdirp'
 import fs from 'fs'
 
-const saveFolder = path.join(process.cwd(), '.data')
-
 dotenv.config()
+
+export const storageFolder = process.env.STORAGE_PATH// || path.join(process.env.STORAGE_PATH,'/app-data')
+
+
 nconf.argv()
   .env()
-  .use('file', { file: path.join(saveFolder, 'config.json') });
+  .use('file', { file: path.join(storageFolder, 'config.json') });
 
 
 function nconfSave() {
@@ -26,9 +28,9 @@ class Config {
   set(propName, val) { return nconf.set(propName, val) }
   async save() {
     try {
-      await fs.promises.access(saveFolder);
+      await fs.promises.access(storageFolder);
     } catch {
-      await mkdirp(saveFolder)
+      await mkdirp(storageFolder)
     }
     await nconfSave()
   }
