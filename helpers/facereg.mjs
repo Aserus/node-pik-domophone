@@ -4,15 +4,15 @@ import mkdirp from 'mkdirp'
 import { v4 as uuidv4 } from 'uuid';
 import * as faceapi from '@vladmandic/face-api';
 
-import { config } from './boot/index.mjs'
+import { config, storageFolder } from './boot/index.mjs'
 
 
-import { loadImage, faceDetectionOptions } from './helpers/faceapi.mjs'
+import { loadImage, faceDetectionOptions, writeFace } from './helpers/faceapi.mjs'
 
-const rootFolder = process.cwd()
-const faceFolder = path.join(rootFolder,'.data/faces')
 
-async function clearFaceFolder(){
+const facesFolder = path.join(storageFolder,'faces')
+
+export async function clearFaceFolder(){
   const files = await fs.promises.readdir(faceFolder)
   for (const file of files) {
     await fs.promises.unlink(path.join(faceFolder, file))
@@ -31,13 +31,9 @@ async function getFaceToRegFolder(regFacePath){
 
 
 async function faceReg() {
+  await mkdirp(facesFolder)
 
-
-  await mkdirp(faceFolder)
-  await clearFaceFolder()
-
-
-  const regFacesPath = await getFaceToRegFolder(facesPath)
+  const regFacesPath = await getFaceToRegFolder(facesFolder)
   let regFaceFiles = await fs.promises.readdir(regFacesPath)
   regFaceFiles = regFaceFiles.filter(name => ['.jpg', '.png'].includes(path.extname(name)))
 
@@ -64,7 +60,7 @@ async function faceReg() {
 
     const imageNameNew = uuidv4() + extname.toLowerCase()
 
-    await fs.promises.copyFile(faceFile, path.join(faceFolder, imageNameNew))
+    await fs.promises.copyFile(faceFile, path.join(facesFolder, imageNameNew))
 
     const id = uuidv4()
 
@@ -81,7 +77,7 @@ async function faceReg() {
     faceList.push(face)
   }
 
-  config.set('people', faceList)
+  config.set('users', faceList)
 
 
 

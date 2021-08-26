@@ -1,6 +1,12 @@
+import fs from 'fs'
 import path from 'path'
+import mkdirp from 'mkdirp'
 import tf from '@tensorflow/tfjs-node'
 import * as faceapiDist from '@vladmandic/face-api';
+import { facesFolder } from '../boot/config.mjs'
+
+
+
 
 export const faceapi = faceapiDist
 
@@ -44,7 +50,7 @@ export async function loadImage(buffer) {
 
 
 export async function initFaceApi(){
-  const modelPath = path.join(process.cwd(),'weights')
+  const modelPath = path.join(process.cwd(), 'node_modules/@vladmandic/face-api/model')
 
   // then initialize tfjs
   await faceapi.tf.setBackend('tensorflow');
@@ -57,5 +63,20 @@ export async function initFaceApi(){
   await faceDetectionNet.loadFromDisk(modelPath)
   await faceapi.nets.faceLandmark68Net.loadFromDisk(modelPath)
   await faceapi.nets.faceRecognitionNet.loadFromDisk(modelPath)
-  return
+  return faceapi
+}
+
+
+
+
+
+export async function writeFace(imageNameNew,data) {
+  await mkdirp(facesFolder)
+  await fs.promises.writeFile(path.join(facesFolder, imageNameNew), data)
+}
+export async function clearFaceFolder() {
+  const files = await fs.promises.readdir(facesFolder)
+  for (const file of files) {
+    await fs.promises.unlink(path.join(facesFolder, file))
+  }
 }
