@@ -26,11 +26,7 @@ async function run() {
 
   const videoIntercomList = await fetchIntercoms()
 
-  const deviceIds = []
 
-  io.on('connection', socket => {
-    socket.emit('devices', deviceIds)
-  })
 
   const intercomBusMap = new Map();
   videoIntercomList.forEach(intercom => {
@@ -64,7 +60,7 @@ async function run() {
 
     const deviceId = `intercom.${id}`
 
-    deviceIds.push({ title, deviceId })
+
 
     const workerData = { url, title, rate: FPS_STREAM }
 
@@ -119,35 +115,32 @@ async function run() {
       const frame = lastFrame;
       lastFrame = null
 
-      //t = performance.now()
-      workerFindface.recognizeFrame(frame)
+
+      try{
+        //t = performance.now()
+        const data = await workerFindface.recognizeFrame(frame)
+
+        if(data.boxes && data.boxes.length){
+          socketEmit('detections', JSON.stringify(data.boxes))
+
+          if (data.detectFaces.length) {
+            findfacePause()
+            const face = data.detectFaces[0]
+            logTime('Обнаружено зарегистрированное лицо:', clc.yellow(title), face.label, face.distance)
+            await pikApi.intercomOpen(intercom.id)
+            logTime('Команда на открытие отправлена', clc.yellow(title))
+            socketEmit('face', face)
+          }
+        }
+      }catch(err){
+        console.log(err)
+      }
 
       handleFrame();
     }
 
 
-    workerFindface.on('data', async data => {
-      //console.log('workerFindface', data)
-
-      // console.log(performance.now() - t)
-      // t = performance.now()
-
-      if (!data) return;
-
-      socketEmit('detections', JSON.stringify(data.boxes))
-
-      if (data.detectFaces.length) {
-        findfacePause()
-        const face = data.detectFaces[0]
-        logTime('Обнаружено зарегистрированное лицо:', clc.yellow(title), face.label, face.distance)
-        await pikApi.intercomOpen(intercom.id)
-        logTime('Команда на открытие отправлена', clc.yellow(title))
-        socketEmit('face', face)
-      }
-
-    })
-
-    handleFrame()
+    //handleFrame()
 
   })
 
@@ -160,7 +153,7 @@ async function run() {
 
 
 
-//run().catch(err => console.log(err))
+run().catch(err => console.log(err))
 
 
 

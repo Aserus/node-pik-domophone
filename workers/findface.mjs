@@ -1,7 +1,7 @@
-import {
-  //workerData,
-  parentPort
-} from 'worker_threads'
+// import {
+//   //workerData,
+//   parentPort
+// } from 'worker_threads'
 
 
 //import { Buffer } from 'buffer'
@@ -9,6 +9,8 @@ import {
 
 import { faceapi, loadImage, initFaceApi,faceDetectionOptions } from '../helpers/faceapi.mjs'
 import getFaceMatcher from '../helpers/face-matcher.mjs'
+
+import sharp from 'sharp'
 
 
 
@@ -21,25 +23,40 @@ async function run(){
   const faceMatcher = await getFaceMatcher()
 
 
+  process.on('message', async (msg) => {
+    const origFrame = Buffer.from(msg.data)
 
-  parentPort.on('message', async (data) => {
-    //return;
-    const frame = Buffer.from(data)
+
+    const frame = await sharp(origFrame).resize(320,180).toBuffer()
+
     const tensor = await loadImage(frame)
 
-    if (!tensor) return;
-    const detections = await faceapi.detectAllFaces(tensor, faceDetectionOptions)   // надо потом попробовать detectSingleFace
-      .withFaceLandmarks()
-      .withFaceDescriptors()
-
-    tensor.dispose();
-
-    if (detections.length == 0) return;
-
-
-    const boxes = detections.map(item => item.detection.box)
 
     const detectFaces = []
+    const boxes = []
+    if (!tensor) {
+
+      process.send({ boxes, detectFaces });
+      return
+    }
+    const detections = await faceapi.detectAllFaces(tensor, faceDetectionOptions)   // надо потом попробовать detectSingleFace
+    //  .withFaceLandmarks()
+    //  .withFaceDescriptors()
+
+    tensor.dispose()
+    process.send({ boxes, detectFaces });
+    return;
+
+
+    if (detections.length == 0) {
+      process.send({ boxes, detectFaces });
+      return
+    }
+
+
+    detections.forEach(item => boxes.push(item.detection.box))
+
+
 
 
     if(faceMatcher){
@@ -57,7 +74,7 @@ async function run(){
       }
     }
 
-    parentPort.postMessage({ boxes, detectFaces });
+    process.send({ boxes, detectFaces });
   });
 
 

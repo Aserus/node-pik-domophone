@@ -1,9 +1,11 @@
 import fs from 'fs'
 import path from 'path'
+//import canvas from 'canvas'
 import mkdirp from 'mkdirp'
 import tf from '@tensorflow/tfjs-node'
 import * as faceapiDist from '@vladmandic/face-api';
 import { facesFolder } from '../boot/config.mjs'
+
 
 
 
@@ -38,7 +40,16 @@ export const faceDetectionOptions = getFaceDetectorOptions(faceDetectionNet)
 //import faceapiDist from '@vladmandic/face-api/dist/face-api.node-gpu.js'
 
 
-
+// export async function loadImage(buffer) {
+//   // const img = await canvas.loadImage(buffer);
+//   // const c = canvas.createCanvas(img.width, img.height);
+//   // const ctx = c.getContext('2d');
+//   // ctx.drawImage(img, 0, 0, img.width, img.height);
+//   // // const out = fs.createWriteStream('test.jpg');
+//   // // const stream = c.createJPEGStream({ quality: 0.6, progressive: true, chromaSubsampling: true });
+//   // // stream.pipe(out);
+//   return await canvas.loadImage(buffer);
+// }
 
 export async function loadImage(buffer) {
   const tensor = tf.tidy(() => tf.node.decodeImage(buffer).toFloat().expandDims());
