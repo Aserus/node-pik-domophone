@@ -11,7 +11,7 @@ export const facesFolder = path.join(storageFolder, 'faces')
 
 nconf.argv()
   .env()
-  .use('file', { file: path.join(storageFolder, 'config.json') });
+  .use('file', { file: path.join(storageFolder, 'config.json') })
 
 
 function nconfSave() {

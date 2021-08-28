@@ -6,7 +6,7 @@ import { Server as SocketIoServer } from 'socket.io'
 
 import { config } from './index.mjs'
 import routeApi from '../routes/index.mjs'
-import fileUpload from 'express-fileupload'
+// import fileUpload from 'express-fileupload'
 
 
 const PORT = config.get('PORT') || 3000
@@ -38,18 +38,15 @@ server.listen(PORT,() => {
 app.use(express.static('public'));
 app.use('/model', cors(corsOptions),express.static('node_modules/@vladmandic/face-api/model'));
 
-app.use(express.json()) // for parsing application/json
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({limit: '20mb'})) // for parsing application/json
 
 
-app.use(fileUpload({
-  limits: { fileSize: 10 * 1024 * 1024 },
-}));
-
+// app.use(express.urlencoded({ extended: true }))
+// app.use(fileUpload({
+//   limits: { fileSize: 10 * 1024 * 1024 },
+// }));
 
 app.use('/api', cors(corsOptions),routeApi);
-// app.get('/', function (req, res) {
-//   res.sendFile(path.join(process.cwd(), 'public/index.html'));
-// });
+
 
 

@@ -8,7 +8,9 @@ import { faceapi } from './faceapi.mjs'
 
 
 export default async () => {
-  let list = config.get('users')
+  let assoc = config.get('users') || {}
+
+  const list = Object.values(assoc)
 
 
 

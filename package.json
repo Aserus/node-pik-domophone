@@ -5,15 +5,17 @@
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs",
-    "serve": "nodemon server.mjs",
+    "dev": "nodemon server.mjs",
+    "serve": "pm2 server.mjs",
     "facereg:init": "node facereg.mjs",
     "docker:build": "docker build --tag pik-domophone .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "npm rebuild @tensorflow/tfjs-node --build-from-source"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tensorflow/tfjs-node": "2.8.4",
+    "@tensorflow/tfjs-node": "^3.8.0",
     "@vladmandic/face-api": "^1.4.1",
     "axios": "^0.21.1",
     "canvas": "^2.8.0",
@@ -22,6 +24,7 @@
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "express-fileupload": "^1.2.1",
+    "mime-types": "^2.1.32",
     "mkdirp": "^1.0.4",
     "moment": "^2.29.1",
     "nconf": "^0.11.3",

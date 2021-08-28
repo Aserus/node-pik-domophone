@@ -6,13 +6,27 @@ import path from 'path'
 
 const workerPath = path.join(process.cwd(),'workers/findface.mjs')
 
+const mainBus = new EventEmitter()
+
+export function restartFindface(){
+  mainBus.emit('restart')
+}
+
 export default class WorkerFindface extends EventEmitter{
   constructor(workerData){
     super()
     this.workerData = workerData
     this.start()
+
+    mainBus.on('restart',() => this.restart())
   }
 
+
+  async restart(){
+    this.worker.kill("SIGINT");
+    this.worker = null
+
+  }
 
   async start(){
     if(this.worker ){

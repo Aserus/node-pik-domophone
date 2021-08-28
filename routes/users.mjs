@@ -1,18 +1,23 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import path from 'path'
+
 
 
 
 import { config } from '../boot/config.mjs'
 
 import {
-  initFaceApi,
-  loadImage,
-  faceDetectionOptions,
   clearFaceFolder,
-  writeFace
-} from '../helpers/faceapi.mjs'
+  saveFaceByBase64
+} from '../helpers/index.mjs'
+
+import {
+  restartFindface,
+} from '../helpers/worker-findface.mjs'
+
+
+
+
 
 
 
@@ -23,7 +28,8 @@ const router = express.Router();
 
 
 router.get('/users', (req, res) => {
-  const list = config.get('users') || []
+  const assoc = config.get('users') || {}
+  const list = Object.values(assoc)
   res.json({ list });
 });
 
@@ -31,57 +37,40 @@ router.get('/users', (req, res) => {
 
 router.delete('/users', async (req, res) => {
   await clearFaceFolder()
-  config.set('users', [])
+  config.set('users', {})
   await config.save()
   res.json({success:1})
 })
 
 router.post('/users', async (req, res) => {
-  //const list = config.get('users') || []
+  const { name,faces } = req.body
 
-  const { photo } = req.files
-  const { name } = req.body
+  if (!name) throw new Error('Не указано имя')
+  if (!faces || faces.length==0) throw new Error('Нет фотографий лиц')
 
-  if (!photo) throw new Error('Не указана фотка')
-
-  const extname = path.extname(photo.name).toLowerCase()
-
-  if (!['.jpeg', '.jpg', '.png'].includes(extname)) throw new Error('Неподдерживаемое расширение')
-
-  const userList = config.get('users') || []
-
-
-  const faceapi = await initFaceApi()
-
-
-
-  const img = await loadImage(photo.data)
-
-  const faceData = await faceapi.detectSingleFace(img, faceDetectionOptions)
-   .withFaceLandmarks()
-   .withFaceDescriptor()
-
-  img.dispose()
-
-  if (!faceData) throw new Error('Регистрация лица: не обнаружено лицо')
-
-  const imageNameNew = uuidv4() + extname.toLowerCase()
-  await writeFace(imageNameNew,photo.data)
-  const id = uuidv4()
-
-  const face = {
-    id,
-    name,
-    faces: [
-      {
-        file: imageNameNew,
-        descriptor: [...faceData.descriptor]
-      }
-    ]
+  const faceList = []
+  for(let item of faces){
+    const file = await saveFaceByBase64(item.img)
+    const face = {
+      descriptor: item.descriptor,
+      file
+    }
+    faceList.push(face)
   }
-  userList.push(face)
-  config.set('users', userList)
+
+  const user = {
+    id: uuidv4(),
+    name,
+    faces:faceList
+  }
+
+  const userAssoc = config.get('users') || {}
+
+  userAssoc[user.id] = user
+  config.set('users', userAssoc)
   await config.save()
+
+  restartFindface()
 
 
   res.json({ success:1 });

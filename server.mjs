@@ -3,7 +3,7 @@ import clc from 'cli-color'
 
 import { EventEmitter } from 'events'
 
-import { pikApi, io } from './boot/index.mjs'
+import { pikApi, io,config } from './boot/index.mjs'
 import { logTime } from './helpers/index.mjs'
 import WorkerFindface from './helpers/worker-findface.mjs'
 import WorkerRtsp from './helpers/worker-rtsp.mjs'
@@ -60,9 +60,17 @@ async function run() {
 
     const deviceId = `intercom.${id}`
 
+    const ffmpegWidth = config.get('FFMPEG_WIDTH')
+    const ffmpegHeight = config.get('FFMPEG_HEIGHT')
 
-
-    const workerData = { url, title, rate: FPS_STREAM }
+    const resolution = ffmpegWidth+`x`+ffmpegHeight
+    //console.log('resolution',resolution)
+    const workerData = {
+      url,
+      title,
+      resolution,
+      rate: FPS_STREAM
+    }
 
 
     const workerRtsp = new WorkerRtsp(workerData)
@@ -115,11 +123,9 @@ async function run() {
       const frame = lastFrame;
       lastFrame = null
 
-
       try{
         //t = performance.now()
         const data = await workerFindface.recognizeFrame(frame)
-
         if(data.boxes && data.boxes.length){
           socketEmit('detections', JSON.stringify(data.boxes))
 
@@ -140,7 +146,7 @@ async function run() {
     }
 
 
-    //handleFrame()
+    handleFrame()
 
   })
 

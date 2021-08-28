@@ -5,7 +5,7 @@ import * as rtsp from '../lib/rtsp-ffmpeg.js'
 
 
 async function run(){
-  const { url,rate } = workerData
+  const { url,rate,resolution } = workerData
   //console.log('start worker', workerData)
 
 
@@ -15,6 +15,7 @@ async function run(){
   const stream = new rtsp.FFMpeg({
     input: url,
     rate,
+    resolution,
     //quality: 1
   });
   stream.on('data', data => {
