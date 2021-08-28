@@ -10,7 +10,7 @@ import WorkerRtsp from './helpers/worker-rtsp.mjs'
 
 const FPS_FINDFACE = 1
 const FPS_STREAM = 5
-const FPS_VIEW = 1
+//const FPS_VIEW = 1
 
 
 async function fetchIntercoms(){

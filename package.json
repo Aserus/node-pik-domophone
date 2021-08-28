@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "nodemon server.mjs",
-    "serve": "pm2 server.mjs",
+    "serve": "pm2 start server.mjs",
     "facereg:init": "node facereg.mjs",
     "docker:build": "docker build --tag pik-domophone .",
     "test": "echo \"Error: no test specified\" && exit 1",

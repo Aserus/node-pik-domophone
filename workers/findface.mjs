@@ -10,7 +10,7 @@
 import { faceapi, loadImage, initFaceApi,faceDetectionOptions } from '../helpers/faceapi.mjs'
 import getFaceMatcher from '../helpers/face-matcher.mjs'
 
-//import sharp from 'sharp'
+import sharp from 'sharp'
 import sizeOf from 'image-size'
 
 
@@ -32,11 +32,11 @@ async function run(){
 
     //console.log(iCounter++)
 
-    const frame = origFrame
-    // const frame =await sharp(origFrame)
-    //   //.resize(320,180)
-    //   .resize(640,360)
-    //   .toBuffer()
+    //const frame = origFrame
+    const frame =await sharp(origFrame)
+      //.resize(320,180)
+      .resize(640,360)
+      .toBuffer()
 
     const tensor = await loadImage(frame)
 
