@@ -60,8 +60,8 @@ async function run() {
 
     const deviceId = `intercom.${id}`
 
-    const ffmpegWidth = config.get('FFMPEG_WIDTH')
-    const ffmpegHeight = config.get('FFMPEG_HEIGHT')
+    const ffmpegWidth = config.get('FFMPEG_WIDTH') || 640
+    const ffmpegHeight = config.get('FFMPEG_HEIGHT') || 360
 
     const resolution = ffmpegWidth+`x`+ffmpegHeight
     //console.log('resolution',resolution)
