@@ -6,7 +6,7 @@ import fs from 'fs'
 
 dotenv.config()
 
-export const storageFolder = process.env.STORAGE_PATH// || path.join(process.env.STORAGE_PATH,'/app-data')
+export const storageFolder = '/app-data'
 export const facesFolder = path.join(storageFolder, 'faces')
 
 nconf.argv()

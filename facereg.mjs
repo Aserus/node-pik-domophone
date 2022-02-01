@@ -8,7 +8,7 @@ import faceReg from './helpers/facereg.mjs';
 
 
 const rootFolder = process.cwd()
-const faceFolder = path.join(rootFolder,'.data/faces')
+const faceFolder = path.join('/app-data/faces')
 
 
 

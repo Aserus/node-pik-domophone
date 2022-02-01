@@ -1,6 +1,8 @@
 import clc from 'cli-color'
 
 
+import dayjs from 'dayjs'
+import fs from 'fs/promises'
 import { EventEmitter } from 'events'
 
 import { pikApi, io,config } from './boot/index.mjs'
@@ -46,11 +48,12 @@ async function run() {
   },30*60*1000)
 
 
+  // console.log(videoIntercomList)
+  // return;
 
 
-
-
-  videoIntercomList.forEach(async intercom => {
+  videoIntercomList.forEach(async (intercom,i) => {
+    //if(i>0) return;
     const { id } = intercom
     const title = intercom.renamed_name
 
@@ -66,12 +69,13 @@ async function run() {
     const resolution = ffmpegWidth+`x`+ffmpegHeight
     //console.log('resolution',resolution)
     const workerData = {
+      photo_url: intercom.photo_url,
       url,
       title,
       resolution,
       rate: FPS_STREAM
     }
-
+    //console.log(intercom.photo_url)
 
     const workerRtsp = new WorkerRtsp(workerData)
     const workerFindface = new WorkerFindface(workerData)
@@ -100,8 +104,10 @@ async function run() {
     })
 
     bus.on('update',updIntercom =>{
+      
       const url = updIntercom.video[0].source
       workerRtsp.changeUrl(url)
+      workerRtsp.changePhotoUrl(updIntercom.photo_url)
     })
 
 
@@ -130,12 +136,17 @@ async function run() {
           socketEmit('detections', JSON.stringify(data.boxes))
 
           if (data.detectFaces.length) {
-            findfacePause()
             const face = data.detectFaces[0]
-            logTime('Обнаружено зарегистрированное лицо:', clc.yellow(title), face.label, face.distance)
-            await pikApi.intercomOpen(intercom.id)
-            logTime('Команда на открытие отправлена', clc.yellow(title))
-            socketEmit('face', face)
+            if (face.distance < 0.51){
+              findfacePause()
+              
+              logTime('Обнаружено зарегистрированное лицо:', clc.yellow(title), face.label, face.distance)
+              await pikApi.intercomOpen(intercom.id)
+              logTime('Команда на открытие отправлена', clc.yellow(title))
+              const fName = dayjs().format('YYYY-MM-DD--HH-mm-ss')
+              fs.writeFile(`/app-data/open-logs/${fName}---${face.label}.jpg`, frame)
+              socketEmit('face', face)
+            }
           }
         }
       }catch(err){
